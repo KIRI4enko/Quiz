@@ -1,0 +1,22 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>Панель управления игрой</h1>
+<div style="display: flex; gap: 20px;">
+    <div>
+        <h2>Вопросы</h2>
+        <a href="{% url 'moderator:question_list' %}">Список вопросов</a><br>
+        <a href="{% url 'moderator:question_create' %}">Создать вопрос</a>
+    </div>
+    <div>
+        <h2>Команды</h2>
+        <a href="{% url 'moderator:team_list' %}">Список команд</a><br>
+        <a href="{% url 'moderator:team_create' %}">Добавить команду</a>
+    </div>
+    <div>
+        <h2>Игровые сессии</h2>
+        <a href="{% url 'moderator:gamesession_list' %}">Список сессий</a><br>
+        <a href="{% url 'moderator:gamesession_create' %}">Новая сессия</a>
+    </div>
+</div>
+{% endblock %}

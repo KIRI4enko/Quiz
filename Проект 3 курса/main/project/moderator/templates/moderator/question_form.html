@@ -1,0 +1,24 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>{% if object %}Редактировать вопрос{% else %}Создать вопрос{% endif %}</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <h3>Варианты ответов (макс. 4)</h3>
+    {{ choice_formset.management_form }}
+    <table>
+        {% for form in choice_formset %}
+        <tr>
+            <td>{{ form.text.label_tag }} {{ form.text }}</td>
+            <td>{{ form.is_correct }} {{ form.is_correct.label }}</td>
+            <td>{{ form.order.label_tag }} {{ form.order }}</td>
+            <td>{% if form.instance.pk %}{{ form.DELETE }} Удалить{% endif %}</td>
+        </tr>
+        {{ form.id }}
+        {% endfor %}
+    </table>
+    <button type="submit">Сохранить</button>
+    <a href="{% url 'moderator:question_list' %}">Отмена</a>
+</form>
+{% endblock %}

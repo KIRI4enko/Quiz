@@ -1,0 +1,12 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>{% if object %}Редактировать сессию{% else %}Создать новую сессию{% endif %}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Сохранить</button>
+    <a href="{% url 'moderator:gamesession_list' %}">Отмена</a>
+</form>
+{% endblock %}

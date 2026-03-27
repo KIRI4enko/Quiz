@@ -1,0 +1,114 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>Игровые сессии</h1>
+
+<a href="{% url 'moderator:gamesession_create' %}" class="button">+ Новая сессия</a>
+
+{% if sessions %}
+    <table border="1" cellpadding="8" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Статус</th>
+                <th>Дата создания</th>
+                <th>Начало игры</th>
+                <th>Вопросов</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td>{{ session.id }}</td>
+                <td>{{ session.name|default:"(без названия)" }}</td>
+                <td>
+                    {% if session.status == 'prep' %}
+                        <span style="color: orange;">Подготовка</span>
+                    {% elif session.status == 'active' %}
+                        <span style="color: green;">Активна</span>
+                    {% elif session.status == 'finished' %}
+                        <span style="color: gray;">Завершена</span>
+                    {% endif %}
+                </td>
+                <td>{{ session.created_at|date:"d.m.Y H:i" }}</td>
+                <td>{{ session.start_time|date:"d.m.Y H:i"|default:"—" }}</td>
+                <td>{{ session.game_questions.count }}</td>
+                <td>
+                    <a href="{% url 'moderator:gamesession_detail' session.pk %}">Подробнее</a>
+                    {% if session.status == 'prep' and session.game_questions.exists %}
+                        <form method="post" action="{% url 'moderator:start_game_session' session.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" onclick="return confirm('Запустить игру?')">Старт</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7">Нет сессий</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; первая</a>
+                <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+            {% endif %}
+
+            <span class="current">
+                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+{% else %}
+    <p>Пока нет ни одной игровой сессии. <a href="{% url 'moderator:gamesession_create' %}">Создать первую</a></p>
+{% endif %}
+
+<style>
+    .button {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .button:hover {
+        background-color: #2980b9;
+    }
+    table {
+        border: 1px solid #ddd;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    td, th {
+        padding: 10px;
+        text-align: left;
+    }
+    form button {
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-left: 5px;
+    }
+    form button:hover {
+        background-color: #219a52;
+    }
+</style>
+{% endblock %}
