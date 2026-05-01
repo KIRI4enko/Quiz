@@ -35,6 +35,7 @@ DJANGO_SETTINGS_MODULE='project.settings'
 
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
