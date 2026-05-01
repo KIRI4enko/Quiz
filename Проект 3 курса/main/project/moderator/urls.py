@@ -8,7 +8,7 @@ urlpatterns = [
     path('', views.ModeratorPanelView.as_view(), name='panel'),
     path('login/', views.ModeratorLoginView.as_view(), name='login'),
     path('logout/', views.ModeratorLogoutView.as_view(), name='logout'),
-
+    
     # Управление вопросами
     path('questions/', views.QuestionListView.as_view(), name='question_list'),
     path('questions/create/', views.QuestionCreateView.as_view(), name='question_create'),
@@ -25,6 +25,7 @@ urlpatterns = [
     path('sessions/', views.GameSessionListView.as_view(), name='gamesession_list'),
     path('sessions/create/', views.GameSessionCreateView.as_view(), name='gamesession_create'),
     path('sessions/<int:pk>/', views.GameSessionDetailView.as_view(), name='gamesession_detail'),
+    path('sessions/<int:pk>/delete/', views.GameSessionDeleteView.as_view(), name='gamesession_delete'),
     path('sessions/<int:pk>/add_question/', views.AddQuestionToSessionView.as_view(), name='add_question_to_session'),
     path('sessions/<int:pk>/remove_question/<int:gq_pk>/', views.RemoveQuestionFromSessionView.as_view(), name='remove_question_from_session'),
     path('sessions/<int:pk>/start/', views.StartGameSessionView.as_view(), name='start_game_session'),

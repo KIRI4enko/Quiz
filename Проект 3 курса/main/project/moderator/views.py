@@ -134,9 +134,14 @@ class QuestionUpdateView(ModeratorRequiredMixin, UpdateView):
 
 class QuestionDeleteView(ModeratorRequiredMixin, DeleteView):
     model = Question
-    template_name = 'moderator/question_confirm_delete.html'
     success_url = reverse_lazy('moderator:question_list')
 
+    def post(self, request, pk):
+        question = get_object_or_404(Question, pk=pk)
+        question_name = str(question.text)
+        question.delete()
+        messages.success(request, f"Вопрос {question_name} удален.")
+        return redirect('moderator:question_list')
 
 # ========== Управление командами ==========
 
@@ -163,9 +168,14 @@ class TeamUpdateView(ModeratorRequiredMixin, UpdateView):
 
 class TeamDeleteView(ModeratorRequiredMixin, DeleteView):
     model = Team
-    template_name = 'moderator/team_confirm_delete.html'
     success_url = reverse_lazy('moderator:team_list')
 
+    def post(self, request, pk):
+        team = get_object_or_404(Team, pk=pk)
+        name = str(team.name)
+        team.delete()
+        messages.success(request, f"Команда {name} удалена")
+        return redirect("moderator:team_list")
 
 # ========== Управление игровыми сессиями ==========
 
@@ -183,6 +193,19 @@ class GameSessionCreateView(ModeratorRequiredMixin, CreateView):
     success_url = reverse_lazy('moderator:gamesession_list')
 
 
+class GameSessionDeleteView(ModeratorRequiredMixin, DeleteView):
+    model = GameSession
+    template_name = 'moderator/gamesession_confirm_delete.html'  # можно не использовать, если удаляешь прямо из списка
+    success_url = reverse_lazy('moderator:gamesession_list')
+
+    def post(self, request, pk):
+        session = get_object_or_404(GameSession, pk=pk)
+        name = str(session.name)
+        session.delete()
+        messages.success(request, f"Сессия {name} удалена.")
+        return redirect('moderator:gamesession_list')
+
+
 class GameSessionDetailView(ModeratorRequiredMixin, DetailView):
     model = GameSession
     template_name = 'moderator/gamesession_detail.html'
@@ -195,7 +218,6 @@ class GameSessionDetailView(ModeratorRequiredMixin, DetailView):
         # Вопросы, уже включённые в сессию
         context['game_questions'] = self.object.game_questions.all().order_by('order')
         return context
-
 
 # Представление для добавления вопроса в сессию
 class AddQuestionToSessionView(ModeratorRequiredMixin, View):

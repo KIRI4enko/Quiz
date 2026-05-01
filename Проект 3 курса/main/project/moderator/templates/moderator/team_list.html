@@ -20,7 +20,12 @@
             <td><span style="display:inline-block; width:20px; height:20px; background:{{ team.color }};"></span> {{ team.color }}</td>
             <td>
                 <a href="{% url 'moderator:team_edit' team.pk %}">Редактировать</a>
-                <a href="{% url 'moderator:team_delete' team.pk %}">Удалить</a>
+                <form method="post" action="{% url 'moderator:team_delete' team.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Удалить команду {{ team.name }}?')">
+                        Удалить
+                    </button>
+                </form>
             </td>
         </tr>
         {% empty %}
