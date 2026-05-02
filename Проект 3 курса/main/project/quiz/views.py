@@ -8,9 +8,11 @@ from .models import Team, GameSession, TeamSession
 class IndexView(View):
     """Главная страница: вход для команд"""
     def get(self, request):
-        # Если команда уже в сессии, перенаправляем на страницу игры
+        # Если команда уже авторизована, отправляем к выбору комнаты / в игру
         if 'team_id' in request.session:
-            return redirect('quiz:game')
+            if 'game_session_id' in request.session:
+                return redirect('quiz:game')
+            return redirect('quiz:gamesession_list')
         return render(request, 'quiz/index.html')
 
     def post(self, request):
@@ -26,8 +28,37 @@ class IndexView(View):
         # Сохраняем ID команды в сессии
         request.session['team_id'] = team.id
         request.session['team_name'] = team.name
+        request.session.pop('game_session_id', None)
         
-        # Перенаправляем на страницу игры
+        # После входа команда выбирает комнату вручную
+        return redirect('quiz:gamesession_list')
+
+
+class GameSessionListView(View):
+    """Список комнат, доступных для входа командам"""
+    def get(self, request):
+        if 'team_id' not in request.session:
+            return redirect('quiz:index')
+
+        sessions = GameSession.objects.filter(status__in=['prep', 'active']).order_by('-created_at')
+        return render(request, 'gamesession_list.html', {'sessions': sessions})
+
+
+class JoinGameSessionView(View):
+    """Присоединение команды к выбранной игровой сессии"""
+    def post(self, request, pk):
+        if 'team_id' not in request.session:
+            return redirect('quiz:index')
+
+        team = Team.objects.get(id=request.session['team_id'])
+        session = GameSession.objects.filter(pk=pk, status__in=['prep', 'active']).first()
+
+        if not session:
+            messages.error(request, 'Эта сессия недоступна для подключения.')
+            return redirect('quiz:gamesession_list')
+
+        TeamSession.objects.get_or_create(team=team, game_session=session)
+        request.session['game_session_id'] = session.id
         return redirect('quiz:game')
 
 
@@ -37,6 +68,7 @@ class TeamLogoutView(View):
         if 'team_id' in request.session:
             del request.session['team_id']
             del request.session['team_name']
+        request.session.pop('game_session_id', None)
         return redirect('quiz:index')
 
 
@@ -46,16 +78,16 @@ class GameView(View):
             return redirect('quiz:index')
         
         team = Team.objects.get(id=request.session['team_id'])
-        
-        # Ищем сессию, доступную для игры (активную или в подготовке)
-        session = GameSession.objects.filter(status__in=['prep', 'active']).last()
-        
+
+        session_id = request.session.get('game_session_id')
+        session = None
+        if session_id:
+            session = GameSession.objects.filter(id=session_id, status__in=['prep', 'active']).first()
+
         if not session:
-            return render(request, 'quiz/game.html', {
-                'team': team,
-                'error': 'Нет активной игровой сессии. Дождитесь начала игры.'
-            })
-        
+            messages.info(request, 'Выберите игровую сессию для входа в комнату.')
+            return redirect('quiz:gamesession_list')
+
         # Создаём TeamSession, если ещё нет
         TeamSession.objects.get_or_create(team=team, game_session=session)
         

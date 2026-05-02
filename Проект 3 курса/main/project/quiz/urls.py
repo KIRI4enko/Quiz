@@ -10,6 +10,8 @@ app_name = 'quiz'
 
 urlpatterns = [
     path('', views.IndexView.as_view(), name='index'),
+    path('sessions/', views.GameSessionListView.as_view(), name='gamesession_list'),
+    path('sessions/<int:pk>/join/', views.JoinGameSessionView.as_view(), name='join_gamesession'),
     path('game/', views.GameView.as_view(), name='game'),
     path('logout/', views.TeamLogoutView.as_view(), name='logout'),
 ]
