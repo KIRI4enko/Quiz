@@ -34,6 +34,14 @@
             height: 25px;
             border-radius: 5px;
         }
+        .team-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #d1d5db;
+            background: #fff;
+        }
         .logout {
             padding: 8px 16px;
             background: #e74c3c;
@@ -65,7 +73,45 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
+        .moderator-controls {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            display: grid;
+            gap: 8px;
+        }
+        .moderator-stage {
+            font-size: 13px;
+            color: #475569;
+            margin: 0 0 4px 0;
+        }
+        .moderator-button {
+            width: 100%;
+        }
+        .moderator-button button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .btn-start { background: #22c55e; color: #052e16; }
+        .btn-stop { background: #f59e0b; color: #451a03; }
+        .btn-show { background: #60a5fa; color: #0c4a6e; }
+        .btn-end { background: #f87171; color: #450a0a; }
+        .moderator-title {
+            margin: 0;
+            font-size: 14px;
+            color: #334155;
+            font-weight: 700;
+        }
+
+
         .timer {
             font-size: 48px;
             text-align: center;
@@ -83,6 +129,18 @@
             font-size: 20px;
             margin-bottom: 30px;
             line-height: 1.5;
+        }
+        .question-image-wrap {
+            margin-bottom: 20px;
+            display: none;
+        }
+        .question-image {
+            max-width: 100%;
+            max-height: 320px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            object-fit: contain;
+            background: #fff;
         }
         .choices {
             display: grid;
@@ -123,10 +181,15 @@
             cursor: not-allowed;
         }
         .wait-message {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;  /* Вертикальное выравнивание */
+            align-items: center;      /* Горизонтальное выравнивание */
             text-align: center;
             font-size: 18px;
             color: #7f8c8d;
             padding: 40px;
+            height: 600px;
         }
         .score-table {
             width: 100%;
@@ -170,10 +233,23 @@
 <body>
     <div class="header">
         <div class="team-info">
-            Команда: {{ team.name }}
-            <span class="team-color" style="background:{{ team.color }};"></span>
+            {% if is_moderator %}
+                Модератор: {{ moderator_name }}
+            {% else %}
+                Команда: {{ team.name }}
+            {% endif %}
+            {% if team and team.logo %}
+                <img src="{{ team.logo.url }}" alt="Логотип команды" class="team-logo">
+            {% endif %}
+            {% if team %}
+                <span id="teamColorDot" class="team-color"></span>
+            {% endif %}
         </div>
-        <a href="{% url 'quiz:logout' %}" class="logout">Выйти</a>
+        {% if is_moderator %}
+            <a href="{% url 'moderator:logout' %}" class="logout">Выйти</a>
+        {% else %}
+            <a href="{% url 'quiz:logout' %}" class="logout">Выйти</a>
+        {% endif %}
     </div>
     
     <div class="main-panel">
@@ -185,11 +261,13 @@
             <div id="questionScreen" class="hidden">
                 <div class="timer" id="timer">00:00</div>
                 <div class="question-text" id="questionText"></div>
+                <div id="questionImageWrap" class="question-image-wrap">
+                    <img id="questionImage" class="question-image" alt="Изображение вопроса">
+                </div>
                 <div class="choices" id="choicesContainer"></div>
                 <div id="messageDisplay" class="message-area hidden"></div>
             </div>
         </div>
-        
         <div class="score-panel">
             <h3>Текущий счёт</h3>
             <table class="score-table" id="scoreTable">
@@ -204,14 +282,90 @@
                     <!-- заполняется JS -->
                 </tbody>
             </table>
+
+            {% if is_moderator %}
+            <div class="moderator-controls">
+                <p class="moderator-title">Управление (WebSocket)</p>
+                <p id="moderatorStageDisplay" class="moderator-stage">Стадия: …</p>
+                <div class="moderator-button" id="modWrapStartGame">
+                    <button type="button" class="btn-start" data-mod-action="moderator_start_game">▶ Запустить игру</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-start" data-mod-action="moderator_start_question">▶ Запустить следующий вопрос</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-stop" data-mod-action="moderator_end_question">⏹ Остановить приём ответов</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-show" data-mod-action="moderator_show_correct_answer">🔍 Показать правильный ответ</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-end" data-mod-action="moderator_end_game">⏹ Завершить игру</button>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
+
     <script>
         // Данные из Django
-        const teamId = {{ team.id }};
+        const teamIdRaw = "{{ team.id|default:'' }}";
+        const teamId = teamIdRaw ? Number(teamIdRaw) : null;
         const sessionId = "{{ session.id|default:'' }}";
-        const teamColor = "{{ team.color }}";
+        const teamColor = "{{ team.color|default:'' }}";
+        const teamColorDot = document.getElementById('teamColorDot');
+        if (teamColorDot && teamColor) {
+            teamColorDot.style.background = teamColor;
+        }
+
+        const isModerator = ("{{ is_moderator|yesno:'yes,no' }}" === "yes");
+        const initialSessionStatus = "{{ session.status }}";
+        const STAGE_LABELS = {
+            prep: 'Подготовка — ожидание запуска игры',
+            active_idle: 'Игра идёт — ожидание вопроса',
+            active_question: 'Идёт вопрос (приём ответов)',
+            active_question_time_up: 'Вопрос показан, время истекло — можно завершить вопрос',
+            finished: 'Игра завершена',
+            unknown: ''
+        };
+
+        function sendModeratorAction(actionName) {
+            if (!window.gameSocket || window.gameSocket.readyState !== WebSocket.OPEN) {
+                showMessage('Нет соединения с сервером', true);
+                return;
+            }
+            window.gameSocket.send(JSON.stringify({ action: actionName }));
+        }
+
+        if (isModerator) {
+            document.querySelectorAll('[data-mod-action]').forEach((btn) => {
+                btn.addEventListener('click', () => sendModeratorAction(btn.getAttribute('data-mod-action')));
+            });
+        }
+
+        function updateModeratorStage(state) {
+            const el = document.getElementById('moderatorStageDisplay');
+            if (!el || !state || !state.game_stage) return;
+            const label = STAGE_LABELS[state.game_stage] || state.game_stage;
+            el.textContent = 'Стадия: ' + label;
+        }
+
+        function syncModeratorButtons(state) {
+            if (!isModerator || !state) return;
+            const prep = state.session_status === 'prep';
+            const active = state.session_status === 'active';
+            const finished = state.session_status === 'finished';
+            const wrapStart = document.getElementById('modWrapStartGame');
+            if (wrapStart) wrapStart.style.display = (prep && !finished) ? 'block' : 'none';
+            document.querySelectorAll('.mod-active-only').forEach((el) => {
+                el.style.display = active ? 'block' : 'none';
+            });
+        }
+
+        if (isModerator) {
+            syncModeratorButtons({ session_status: initialSessionStatus });
+        }
 
         // Глобальный объект для WebSocket (привязываем к window для надёжности)
         window.gameSocket = null;
@@ -251,6 +405,10 @@
 
         // Функция отправки ответа (использует window.gameSocket)
         function submitAnswer(choiceId) {
+            if (!teamId) {
+                showMessage('Модератор не отправляет ответы.', true);
+                return;
+            }
             if (!window.gameSocket || window.gameSocket.readyState !== WebSocket.OPEN) {
                 showMessage("Нет соединения с сервером", true);
                 return;
@@ -282,6 +440,15 @@
             
             currentGameQuestionId = qData.game_question_id;
             document.getElementById('questionText').textContent = qData.question_text;
+            const imageWrap = document.getElementById('questionImageWrap');
+            const imageEl = document.getElementById('questionImage');
+            if (qData.image_url) {
+                imageEl.src = qData.image_url;
+                imageWrap.style.display = 'block';
+            } else {
+                imageEl.removeAttribute('src');
+                imageWrap.style.display = 'none';
+            }
             timeLimit = qData.time_limit;
             startTime = new Date(qData.start_time);
             
@@ -293,7 +460,12 @@
                 btn.className = 'choice-btn';
                 btn.dataset.choiceId = choice.id;
                 btn.textContent = choice.text;
-                btn.onclick = () => submitAnswer(choice.id);
+                if (teamId) {
+                    btn.onclick = () => submitAnswer(choice.id);
+                } else {
+                    btn.disabled = true;
+                    btn.title = 'Модератор не отвечает на вопросы';
+                }
                 choicesDiv.appendChild(btn);
             });
             
@@ -392,15 +564,24 @@
         }
 
         function updateState(state) {
-            updateScores(state.scores);
+            updateScores(state.scores || []);
+            updateModeratorStage(state);
+            syncModeratorButtons(state);
+
+            if (state.session_status === 'finished') {
+                handleGameEnded({final_scores: state.scores});
+                return;
+            }
             if (state.current_question) {
                 handleNewQuestion(state.current_question);
-            } else if (state.session_status === 'finished') {
-                handleGameEnded({final_scores: state.scores});
-            } else {
-                document.getElementById('waitingScreen').classList.remove('hidden');
-                document.getElementById('questionScreen').classList.add('hidden');
+                if (state.current_question.timed_out && timerInterval) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timer').classList.add('expired');
+                }
+                return;
             }
+            document.getElementById('waitingScreen').classList.remove('hidden');
+            document.getElementById('questionScreen').classList.add('hidden');
         }
 
         // Инициализация WebSocket
@@ -439,8 +620,15 @@
                     case 'game_ended':
                         handleGameEnded(data);
                         break;
+                    case 'moderator_error':
+                        showMessage(data.message || 'Действие недоступно', true);
+                        break;
                     case 'error':
-                        alert('Ошибка: ' + data.message);
+                        if (teamId || isModerator) {
+                            showMessage(data.message || 'Ошибка', true);
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
                         break;
                     default:
                         console.log('Неизвестный тип сообщения:', data.type);

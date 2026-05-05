@@ -35,6 +35,7 @@ DJANGO_SETTINGS_MODULE='project.settings'
 
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -133,6 +134,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/moderator/login/'   # адрес страницы входа для модератора
 LOGIN_REDIRECT_URL = '/moderator/'  # куда перенаправлять после успешного входа

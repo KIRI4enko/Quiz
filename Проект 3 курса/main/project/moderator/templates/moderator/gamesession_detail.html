@@ -1,109 +1,173 @@
 {% extends "moderator/base.html" %}
 
 {% block content %}
-<h1>Сессия: {{ session.name }}</h1>
-<p>Статус: {{ session.get_status_display }}</p>
-<p>Начало: {{ session.start_time|default:"не начата" }}</p>
+<div class="session-page">
+    <div class="card">
+        <h1>Сессия: {{ session.name|default:"(без названия)" }}</h1>
+        <div class="meta-grid">
+            <p><strong>Статус:</strong> {{ session.get_status_display }}</p>
+            <p><strong>Начало:</strong> {{ session.start_time|date:"d.m.Y H:i"|default:"не начата" }}</p>
+            <p><a class="btn btn-primary" href="{% url 'quiz:moderator_game' session.pk %}" target="_blank">Открыть экран игры модератора</a></p>
+        </div>
+    </div>
 
-{% if session.status == 'prep' %}
-    <h2>Добавить вопрос в сессию</h2>
-    <form method="post" action="{% url 'moderator:add_question_to_session' session.pk %}">
-        {% csrf_token %}
-        <select name="question_id">
-            <option value="">-- Выберите вопрос --</option>
-            {% for q in available_questions %}
-            <option value="{{ q.pk }}">{{ q.text|truncatechars:50 }}</option>
+    {% if session.status == 'prep' %}
+    <div class="card card-cyan">
+        <h2>Добавить вопрос в сессию</h2>
+        <form method="post" action="{% url 'moderator:add_question_to_session' session.pk %}" class="inline-form">
+            {% csrf_token %}
+            <select name="question_id">
+                <option value="">-- Выберите вопрос --</option>
+                {% for q in available_questions %}
+                <option value="{{ q.pk }}">{{ q.text|truncatechars:50 }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h2>Вопросы в сессии (порядок)</h2>
+        <ul class="questions-list">
+            {% for gq in game_questions %}
+            <li class="question-item">
+                <span>{{ gq.order }}. {{ gq.question.text|truncatechars:80 }}</span>
+                {% if session.status == 'prep' %}
+                    <form method="post" action="{% url 'moderator:remove_question_from_session' session.pk gq.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить?')">Удалить</button>
+                    </form>
+                {% endif %}
+            </li>
+            {% empty %}
+            <li class="question-item">Нет добавленных вопросов</li>
             {% endfor %}
-        </select>
-        <button type="submit">Добавить</button>
-    </form>
-{% endif %}
+        </ul>
+    </div>
 
-<h2>Вопросы в сессии (порядок)</h2>
-<ul>
-    {% for gq in game_questions %}
-    <li>
-        {{ gq.order }}. {{ gq.question.text|truncatechars:80 }}
-        {% if session.status == 'prep' %}
-            <form method="post" action="{% url 'moderator:remove_question_from_session' session.pk gq.pk %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" onclick="return confirm('Удалить?')">Удалить</button>
-            </form>
-        {% endif %}
-    </li>
-    {% empty %}
-    <li>Нет добавленных вопросов</li>
-    {% endfor %}
-</ul>
+    {% if session.status == 'prep' and game_questions %}
+    <div class="card card-lime">
+        <form method="post" action="{% url 'moderator:start_game_session' session.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Запустить игру</button>
+        </form>
+    </div>
+    {% endif %}
 
-{% if session.status == 'prep' and game_questions %}
-    <form method="post" action="{% url 'moderator:start_game_session' session.pk %}">
-        {% csrf_token %}
-        <button type="submit">Запустить игру</button>
-    </form>
-{% endif %}
+    {% if session.status == 'active' %}
+    <div class="card card-green">
+        <p class="active-title">✅ Игра идёт</p>
 
-{% if session.status == 'active' %}
-    <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 20px;">
-        <p style="font-weight: bold;">✅ Игра идёт</p>
-        
         {% if session.current_game_question %}
-            <div style="background: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+            <div class="inner-card">
                 <h3>Текущий вопрос: #{{ session.current_game_question.order }}</h3>
                 <p>{{ session.current_game_question.question.text|truncatechars:150 }}</p>
-                <p>Время начала: {{ session.current_game_question.start_time|date:"H:i:s" }}</p>
-                <p>Осталось времени: <span id="timer_display">--</span></p>
-                
-                <form method="post" action="{% url 'moderator:end_question_early' session.pk %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" onclick="return confirm('Досрочно завершить приём ответов?')" 
-                            style="background: #f39c12; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                        ⏹ Завершить вопрос досрочно
-                    </button>
-                </form>
-                
-                <form method="post" action="{% url 'moderator:show_correct_answer' session.pk %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" 
-                            style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                        🔍 Показать правильный ответ
-                    </button>
-                </form>
+                <p><strong>Время начала:</strong> {{ session.current_game_question.start_time|date:"H:i:s" }}</p>
+                <p><strong>Осталось времени:</strong> <span id="timer_display">--</span></p>
+
+                <div class="actions-row">
+                    <form method="post" action="{% url 'moderator:end_question_early' session.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('Досрочно завершить приём ответов?')">
+                            ⏹ Завершить вопрос досрочно
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'moderator:show_correct_answer' session.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            🔍 Показать правильный ответ
+                        </button>
+                    </form>
+                </div>
             </div>
-            
+
             <script>
-                // Простой таймер для отображения оставшегося времени на странице модератора
-                const startTime = new Date("{{ session.current_game_question.start_time|date:'Y-m-d H:i:s' }}").getTime();
-                const timeLimit = {{ session.current_game_question.question.time_limit }};
-                
+                const startTime = new Date("{{ session.current_game_question.start_time|date:'c' }}").getTime();
+                const timeLimit = Number("{{ session.current_game_question.question.time_limit|default:'0' }}");
+
                 function updateTimer() {
                     const now = new Date().getTime();
                     const elapsed = (now - startTime) / 1000;
                     const remaining = Math.max(0, timeLimit - elapsed);
                     document.getElementById('timer_display').innerText = remaining.toFixed(1) + ' сек';
-                    if (remaining > 0) {
-                        setTimeout(updateTimer, 100);
-                    }
+                    if (remaining > 0) setTimeout(updateTimer, 100);
                 }
                 updateTimer();
             </script>
         {% else %}
             <p>Нет активного вопроса.</p>
-            <form method="post" action="{% url 'moderator:start_question' session.pk %}" style="display:inline;">
+            <form method="post" action="{% url 'moderator:start_question' session.pk %}">
                 {% csrf_token %}
-                <button type="submit" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-                    ▶ Запустить следующий вопрос
-                </button>
+                <button type="submit" class="btn btn-success">▶ Запустить следующий вопрос</button>
             </form>
         {% endif %}
-        
-        <form method="post" action="{% url 'moderator:end_game_session' session.pk %}" style="display:inline; margin-left: 10px;">
+
+        <form method="post" action="{% url 'moderator:end_game_session' session.pk %}" class="end-game-form">
             {% csrf_token %}
-            <button type="submit" onclick="return confirm('Вы уверены, что хотите завершить игру?')" 
-                    style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите завершить игру?')">
                 ⏹ Завершить игру
             </button>
         </form>
     </div>
-{% endif %}
+    {% endif %}
+</div>
+
+<style>
+    .session-page { display: grid; gap: 16px; }
+    .card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+    }
+    .card h1, .card h2, .card h3 { margin-top: 0; color: #4c1d95; }
+    .card-cyan { background: #ecfeff; border-color: #a5f3fc; }
+    .card-lime { background: #f7fee7; border-color: #bef264; }
+    .card-green { background: #dcfce7; border-color: #86efac; }
+    .meta-grid { display: grid; gap: 8px; }
+    .inline-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .inline-form select {
+        min-width: 280px;
+        max-width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+    }
+    .questions-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    .question-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .active-title { margin-top: 0; font-weight: 700; color: #166534; }
+    .inner-card {
+        background: white;
+        border: 1px solid #bbf7d0;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .end-game-form { margin-top: 10px; }
+    .btn {
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+    }
+    .btn-primary { background: #60a5fa; color: #0c4a6e; }
+    .btn-success { background: #4ade80; color: #14532d; }
+    .btn-warning { background: #facc15; color: #78350f; }
+    .btn-danger { background: #fb7185; color: #4c0519; }
+</style>
 {% endblock %}

@@ -26,7 +26,12 @@
             </td>
             <td>
                 <a href="{% url 'moderator:question_edit' q.pk %}">Редактировать</a>
-                <a href="{% url 'moderator:question_delete' q.pk %}">Удалить</a>
+                <form method="post" action="{% url 'moderator:question_delete' q.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Удалить вопрос #{{ q.id }}?')">
+                        Удалить
+                    </button>
+                </form>
             </td>
         </tr>
         {% empty %}

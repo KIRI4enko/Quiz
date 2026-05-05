@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic.edit import FormView
 from django.contrib import messages
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from quiz.models import Question, Choice, Team, GameSession, GameQuestion, TeamSession
 from .forms import QuestionForm, ChoiceFormSet, TeamForm, GameSessionForm
@@ -15,6 +16,17 @@ from django.utils import timezone
 
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+
+
+def redirect_back_or_session(request, pk):
+    next_url = request.POST.get('next')
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('moderator:gamesession_detail', pk=pk)
 
 # Миксин для проверки, что пользователь является модератором (имеет профиль)
 class ModeratorRequiredMixin(LoginRequiredMixin):
@@ -134,9 +146,14 @@ class QuestionUpdateView(ModeratorRequiredMixin, UpdateView):
 
 class QuestionDeleteView(ModeratorRequiredMixin, DeleteView):
     model = Question
-    template_name = 'moderator/question_confirm_delete.html'
     success_url = reverse_lazy('moderator:question_list')
 
+    def post(self, request, pk):
+        question = get_object_or_404(Question, pk=pk)
+        question_name = str(question.text)
+        question.delete()
+        messages.success(request, f"Вопрос {question_name} удален.")
+        return redirect('moderator:question_list')
 
 # ========== Управление командами ==========
 
@@ -163,9 +180,14 @@ class TeamUpdateView(ModeratorRequiredMixin, UpdateView):
 
 class TeamDeleteView(ModeratorRequiredMixin, DeleteView):
     model = Team
-    template_name = 'moderator/team_confirm_delete.html'
     success_url = reverse_lazy('moderator:team_list')
 
+    def post(self, request, pk):
+        team = get_object_or_404(Team, pk=pk)
+        name = str(team.name)
+        team.delete()
+        messages.success(request, f"Команда {name} удалена")
+        return redirect("moderator:team_list")
 
 # ========== Управление игровыми сессиями ==========
 
@@ -183,6 +205,19 @@ class GameSessionCreateView(ModeratorRequiredMixin, CreateView):
     success_url = reverse_lazy('moderator:gamesession_list')
 
 
+class GameSessionDeleteView(ModeratorRequiredMixin, DeleteView):
+    model = GameSession
+    template_name = 'moderator/gamesession_confirm_delete.html'  # можно не использовать, если удаляешь прямо из списка
+    success_url = reverse_lazy('moderator:gamesession_list')
+
+    def post(self, request, pk):
+        session = get_object_or_404(GameSession, pk=pk)
+        name = str(session.name)
+        session.delete()
+        messages.success(request, f"Сессия {name} удалена.")
+        return redirect('moderator:gamesession_list')
+
+
 class GameSessionDetailView(ModeratorRequiredMixin, DetailView):
     model = GameSession
     template_name = 'moderator/gamesession_detail.html'
@@ -195,7 +230,6 @@ class GameSessionDetailView(ModeratorRequiredMixin, DetailView):
         # Вопросы, уже включённые в сессию
         context['game_questions'] = self.object.game_questions.all().order_by('order')
         return context
-
 
 # Представление для добавления вопроса в сессию
 class AddQuestionToSessionView(ModeratorRequiredMixin, View):
@@ -232,29 +266,29 @@ class StartGameSessionView(ModeratorRequiredMixin, View):
         session = get_object_or_404(GameSession, pk=pk)
         if session.status != 'prep':
             messages.error(request, "Игра уже запущена или завершена.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         if not session.game_questions.exists():
             messages.error(request, "Нельзя запустить игру без вопросов.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         session.status = 'active'
         session.start_time = timezone.now()
         session.save()
         messages.success(request, "Игра запущена!")
         # Здесь можно добавить логику рассылки через WebSocket, но пока просто редирект
-        return redirect('moderator:gamesession_detail', pk=pk)
+        return redirect_back_or_session(request, pk)
     
 class EndGameSessionView(ModeratorRequiredMixin, View):
     def post(self, request, pk):
         session = get_object_or_404(GameSession, pk=pk)
         if session.status != 'active':
             messages.error(request, "Игра не активна.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         session.status = 'finished'
         session.end_time = timezone.now()
         session.save()
         messages.success(request, "Игра завершена.")
         # Здесь можно отправить сигнал через WebSocket всем командам о завершении
-        return redirect('moderator:gamesession_detail', pk=pk)
+        return redirect_back_or_session(request, pk)
     
 class StartQuestionView(ModeratorRequiredMixin, View):
     """Запуск следующего вопроса в активной сессии"""
@@ -262,13 +296,13 @@ class StartQuestionView(ModeratorRequiredMixin, View):
         session = get_object_or_404(GameSession, pk=pk)
         if session.status != 'active':
             messages.error(request, "Игра не активна.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         
         # Находим следующий не начатый вопрос
         next_game_question = session.game_questions.filter(start_time__isnull=True).order_by('order').first()
         if not next_game_question:
             messages.error(request, "Нет больше вопросов.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         
         # Устанавливаем время начала
         next_game_question.start_time = timezone.now()
@@ -287,6 +321,7 @@ class StartQuestionView(ModeratorRequiredMixin, View):
                 'type': 'new_question',
                 'game_question_id': next_game_question.id,
                 'question_text': question.text,
+                'image_url': question.image.url if question.image else None,
                 'choices': [
                     {'id': c.id, 'text': c.text}
                     for c in question.choices.all().order_by('order')
@@ -297,7 +332,7 @@ class StartQuestionView(ModeratorRequiredMixin, View):
         )
         
         messages.success(request, f"Вопрос {next_game_question.order} запущен.")
-        return redirect('moderator:gamesession_detail', pk=pk)
+        return redirect_back_or_session(request, pk)
 
 
 class EndQuestionEarlyView(ModeratorRequiredMixin, View):
@@ -306,7 +341,7 @@ class EndQuestionEarlyView(ModeratorRequiredMixin, View):
         session = get_object_or_404(GameSession, pk=pk)
         if session.status != 'active' or not session.current_game_question:
             messages.error(request, "Нет активного вопроса.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         
         current_gq = session.current_game_question
         
@@ -329,7 +364,7 @@ class EndQuestionEarlyView(ModeratorRequiredMixin, View):
         session.save()
         
         messages.success(request, "Приём ответов остановлен.")
-        return redirect('moderator:gamesession_detail', pk=pk)
+        return redirect_back_or_session(request, pk)
 
 
 class ShowCorrectAnswerView(ModeratorRequiredMixin, View):
@@ -339,12 +374,12 @@ class ShowCorrectAnswerView(ModeratorRequiredMixin, View):
         last_gq = session.game_questions.filter(start_time__isnull=False).order_by('-start_time').first()
         if not last_gq:
             messages.error(request, "Нет завершённых вопросов.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         
         correct_choice = last_gq.question.choices.filter(is_correct=True).first()
         if not correct_choice:
             messages.error(request, "У вопроса нет правильного ответа.")
-            return redirect('moderator:gamesession_detail', pk=pk)
+            return redirect_back_or_session(request, pk)
         
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
@@ -361,4 +396,4 @@ class ShowCorrectAnswerView(ModeratorRequiredMixin, View):
         )
         
         messages.success(request, "Правильный ответ показан.")
-        return redirect('moderator:gamesession_detail', pk=pk)
+        return redirect_back_or_session(request, pk)

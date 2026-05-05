@@ -6,6 +6,7 @@ class Team(models.Model):
     name = models.CharField('Название команды', max_length=100, unique=True)
     password = models.CharField('Пароль для входа', max_length=50)  # простой код, не для Django auth
     color = models.CharField('Цвет команды', max_length=7, default='#3498db')  # hex-код
+    logo = models.ImageField('Логотип', upload_to='teams/', blank=True, null=True)
     created_at = models.DateTimeField('Дата регистрации', auto_now_add=True)
 
     class Meta:
