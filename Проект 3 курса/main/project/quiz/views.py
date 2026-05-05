@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from .models import Team, GameSession, TeamSession
 
 
@@ -94,5 +95,26 @@ class GameView(View):
         context = {
             'team': team,
             'session': session,
+            'is_moderator': False,
+        }
+        return render(request, 'quiz/game.html', context)
+
+
+class ModeratorGameView(View):
+    """Страница игры для модератора (наблюдение + кнопки управления)"""
+    def get(self, request, pk):
+        if not request.user.is_authenticated or not hasattr(request.user, 'moderator_profile'):
+            raise PermissionDenied("У вас нет прав модератора.")
+
+        session = GameSession.objects.filter(id=pk).first()
+        if not session:
+            messages.error(request, 'Игровая сессия не найдена.')
+            return redirect('moderator:panel')
+
+        context = {
+            'team': None,
+            'session': session,
+            'is_moderator': True,
+            'moderator_name': request.user.username,
         }
         return render(request, 'quiz/game.html', context)

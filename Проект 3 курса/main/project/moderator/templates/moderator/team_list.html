@@ -9,6 +9,7 @@
             <th>Название</th>
             <th>Пароль</th>
             <th>Цвет</th>
+            <th>Логотип</th>
             <th>Действия</th>
         </tr>
     </thead>
@@ -18,6 +19,13 @@
             <td>{{ team.name }}</td>
             <td>{{ team.password }}</td>
             <td><span style="display:inline-block; width:20px; height:20px; background:{{ team.color }};"></span> {{ team.color }}</td>
+            <td>
+                {% if team.logo %}
+                    <img src="{{ team.logo.url }}" alt="Логотип {{ team.name }}" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #ccc;">
+                {% else %}
+                    —
+                {% endif %}
+            </td>
             <td>
                 <a href="{% url 'moderator:team_edit' team.pk %}">Редактировать</a>
                 <form method="post" action="{% url 'moderator:team_delete' team.pk %}" style="display:inline;">
@@ -29,7 +37,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="4">Нет команд</td></tr>
+        <tr><td colspan="5">Нет команд</td></tr>
         {% endfor %}
     </tbody>
 </table>

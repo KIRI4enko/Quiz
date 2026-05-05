@@ -7,6 +7,7 @@
         <div class="meta-grid">
             <p><strong>Статус:</strong> {{ session.get_status_display }}</p>
             <p><strong>Начало:</strong> {{ session.start_time|date:"d.m.Y H:i"|default:"не начата" }}</p>
+            <p><a class="btn btn-primary" href="{% url 'quiz:moderator_game' session.pk %}" target="_blank">Открыть экран игры модератора</a></p>
         </div>
     </div>
 

@@ -28,7 +28,7 @@ ChoiceFormSet = inlineformset_factory(
 class TeamForm(forms.ModelForm):
     class Meta:
         model = Team
-        fields = ['name', 'password', 'color']
+        fields = ['name', 'password', 'color', 'logo']
         widgets = {
             'password': forms.PasswordInput(render_value=True),
             'color': forms.TextInput(attrs={'type': 'color'}),
