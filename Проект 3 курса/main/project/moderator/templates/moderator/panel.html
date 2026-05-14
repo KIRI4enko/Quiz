@@ -1,0 +1,30 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<div class="dashboard-page">
+    <h1>Панель управления игрой</h1>
+    <div class="dashboard-cards">
+        <div class="card">
+            <h2>Вопросы</h2>
+            <div class="button-group">
+                <a href="{% url 'moderator:question_list' %}" class="btn-pill btn-primary">Список вопросов</a>
+                <a href="{% url 'moderator:question_create' %}" class="btn-pill btn-primary">Создать вопрос</a>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Команды</h2>
+            <div class="button-group">
+                <a href="{% url 'moderator:team_list' %}" class="btn-pill btn-primary">Список команд</a>
+                <a href="{% url 'moderator:team_create' %}" class="btn-pill btn-primary">Добавить команду</a>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Игровые сессии</h2>
+            <div class="button-group">
+                <a href="{% url 'moderator:gamesession_list' %}" class="btn-pill btn-primary">Список сессий</a>
+                <a href="{% url 'moderator:gamesession_create' %}" class="btn-pill btn-primary">Новая сессия</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

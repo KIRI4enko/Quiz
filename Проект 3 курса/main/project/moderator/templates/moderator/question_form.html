@@ -1,0 +1,68 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>{% if object %}Редактировать вопрос{% else %}Создать вопрос{% endif %}</h1>
+<form method="post" enctype="multipart/form-data" class="question-edit-form">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <h3 class="section-title">Изображения к вопросу (до 4)</h3>
+    <p class="hint">Загрузите фото</p>
+    <div class="gallery-slots">
+        {% for slot in gallery_slots %}
+        <div class="gallery-slot" data-slot="{{ slot.index }}">
+            <div class="gallery-slot-head">Фото {{ slot.index|add:1 }}</div>
+            {% if slot.obj and slot.obj.image %}
+                <input type="hidden" name="gallery_pk_{{ slot.index }}" value="{{ slot.obj.pk }}">
+                <a href="{{ slot.obj.image.url }}" target="_blank" class="img-hover-wrap">
+                    <img src="{{ slot.obj.image.url }}" alt="" class="mod-thumb">
+                </a>
+                <label class="del-inline">
+                    <input type="checkbox" name="gallery_delete_{{ slot.index }}" value="1"> удалить
+                </label>
+            {% else %}
+                <div class="gallery-file-row">
+                    <label class="file-label">Выбрать файл</label>
+                    <input type="file" name="gallery_{{ slot.index }}" accept="image/*" class="js-gallery-file" data-slot="{{ slot.index }}">
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <h3 class="section-title">Варианты ответа (до 4, минимум 2 с текстом)</h3>
+    <p class="hint">Отметьте переключателем один правильный вариант.</p>
+    {{ choice_formset.management_form }}
+    <table class="data-table choice-table">
+        <thead>
+            <tr>
+                <th>Правильный</th>
+                <th>Текст варианта</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for form in choice_formset %}
+        <tr>
+            <td class="td-radio">
+                <input type="radio" name="correct_answer_slot" value="{{ forloop.counter0 }}"
+                    {% if object %}
+                        {% if form.instance.pk and form.instance.is_correct %}checked{% endif %}
+                    {% else %}
+                        {% if forloop.counter0 == 0 %}checked{% endif %}
+                    {% endif %}>
+            </td>
+            <td>{{ form.text.errors }}{{ form.text }}{{ form.id }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ choice_formset.non_form_errors }}
+
+    <div class="action-cell"> 
+        <button class="btn-pill btn-success" type="submit">Сохранить</button>
+        <a class="btn-pill btn-warning" href="{% url 'moderator:team_list' %}">Отмена</a>
+    </div>
+</form>
+
+
+{% endblock %}

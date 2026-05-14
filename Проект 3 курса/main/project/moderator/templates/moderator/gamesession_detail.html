@@ -1,0 +1,85 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<div class="session-page">
+    <div class="card">
+        
+        <h1>Сессия: {{ session.name|default:"(без названия)" }}</h1>
+        <p><a class="btn-pill btn-primary" href="{% url 'quiz:moderator_game' session.pk %}" target="_blank">Открыть экран игры модератора</a></p>
+        
+        <div class="meta-grid">
+            <p><strong>Статус:</strong> 
+                {% if session.status == 'prep' %}
+                    <span class="status status-prep">Подготовка</span>
+                {% elif session.status == 'active' %}
+                    <span class="status status-active">Активна</span>
+                {% elif session.status == 'finished' %}
+                    <span class="status status-finished">Завершена</span>
+                {% endif %}
+            </p>
+            <p><strong>Начало:</strong> {{ session.start_time|date:"d.m.Y H:i"|default:"не начата" }}</p>
+            </div>
+    </div>
+
+    {% if session.status == 'prep' %}
+    <div class="card card-cyan">
+        <h2>Добавить вопрос в сессию</h2>
+        <p>Выберите вопрос из полного списка (с карточками, изображениями и вариантами ответов):</p>
+        <a href="{% url 'moderator:select_question' session.pk %}" class="btn-pill btn-primary">Выбрать вопрос</a>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h2>Вопросы в сессии</h2>
+        <ul class="questions-list">
+            {% for gq in game_questions %}
+            <li class="question-item">
+                <div class="question-text">{{ gq.order }}. {{ gq.question.text|truncatechars:80 }}</div>
+                <div class="thumb-row">
+                    {% if gq.question.image %}
+                    <a href="{{ gq.question.image.url }}" target="_blank" class="img-hover-wrap">
+                        <img src="{{ gq.question.image.url }}" alt="" class="mod-thumb">
+                    </a>
+                    {% endif %}
+                    {% for gi in gq.question.gallery_images.all %}
+                    <a href="{{ gi.image.url }}" target="_blank" class="img-hover-wrap">
+                        <img src="{{ gi.image.url }}" alt="" class="mod-thumb">
+                    </a>
+                    {% endfor %}
+                </div>
+                {% if session.status == 'prep' %}
+                <form method="post" action="{% url 'moderator:remove_question_from_session' session.pk gq.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-pill btn-danger" onclick="return confirm('Удалить вопрос?')">Удалить</button>
+                </form>
+                {% endif %}
+            </li>
+            {% empty %}
+            <li class="question-item empty">Нет добавленных вопросов</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% if session.status == 'prep' and game_questions %}
+    <div class="card card-lime">
+        <form method="post" action="{% url 'moderator:start_game_session' session.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-pill btn-success">Запустить игру</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if session.status == 'active' %}
+    <div class="card card-green">
+        <p class="active-title">✅ Игра идёт</p>
+        
+        <form method="post" action="{% url 'moderator:end_game_session' session.pk %}" class="end-game-form">
+            {% csrf_token %}
+            <button type="submit" class="btn-pill btn-danger" onclick="return confirm('Вы уверены, что хотите завершить игру?')">
+                ⏹ Завершить игру
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

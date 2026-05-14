@@ -1,0 +1,18 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>{% if object %}Редактировать команду{% else %}Создать команду{% endif %}</h1>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="action-cell"> 
+        <button class="btn-pill btn-success" type="submit">Сохранить</button>
+        <a class="btn-pill btn-warning" href="{% url 'moderator:team_list' %}">Отмена</a>
+    </div>
+</form>
+
+<p style="margin-top: 20px; color: #666;">
+    <small>Пароль будет использоваться командой для входа в игру.</small>
+</p>
+{% endblock %}

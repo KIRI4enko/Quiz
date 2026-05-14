@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Выбор комнаты</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1 {
+            margin: 0 0 14px 0;
+            color: #1e1b4b;
+        }
+        .hint {
+            color: #475569;
+            margin-bottom: 16px;
+        }
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px 0;
+        }
+        .messages li {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 12px;
+        }
+        th {
+            background: #eef2ff;
+            color: #312e81;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .status-prep { background: #fef3c7; color: #92400e; }
+        .status-active { background: #bbf7d0; color: #14532d; }
+        .join-form {
+            margin: 0;
+        }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 700;
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .bottom-actions {
+            margin-top: 16px;
+        }
+        .logout {
+            color: #dc2626;
+            text-decoration: none;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Выбор игровой комнаты</h1>
+        <p class="hint">Выберите активную или готовящуюся сессию и нажмите «Присоединиться».</p>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if sessions %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Статус</th>
+                        <th>Дата создания</th>
+                        <th>Начало</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                    <tr>
+                        <td>{{ session.id }}</td>
+                        <td>{{ session.name|default:"(без названия)" }}</td>
+                        <td>
+                            {% if session.status == 'prep' %}
+                                <span class="status status-prep">Подготовка</span>
+                            {% elif session.status == 'active' %}
+                                <span class="status status-active">Активна</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ session.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ session.start_time|date:"d.m.Y H:i"|default:"—" }}</td>
+                        <td>
+                            <form class="join-form" method="post" action="{% url 'quiz:join_gamesession' session.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn">Присоединиться</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Сейчас нет доступных игровых сессий. Дождитесь запуска от модератора.</p>
+        {% endif %}
+
+        <div class="bottom-actions">
+            <a href="{% url 'quiz:logout' %}" class="logout">Выйти из команды</a>
+        </div>
+    </div>
+</body>
+</html>

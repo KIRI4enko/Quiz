@@ -1,0 +1,58 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>Команды</h1>
+<a class="btn-pill btn-primary" href="{% url 'moderator:team_create' %}">+ Добавить команду</a>
+
+<table class="data-table team-table">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Пароль</th>
+            <th>Цвет</th>
+            <th>Логотип</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for team in teams %}
+        <tr style="background-color: {{ team.color }}20;">
+            <td>{{ team.name }}</td>
+            <td>{{ team.password }}</td>
+            <td>
+                <span style="display:inline-block; width:20px; height:20px; background:{{ team.color }}; border-radius: 4px;"></span>
+                {{ team.color }}
+            </td>
+            <td>
+                {% if team.logo %}
+                    <img src="{{ team.logo.url }}" alt="Логотип {{ team.name }}" class="mod-thumb" style="width:48px; height:48px; border-radius: 8px;">
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td class="action-cell">
+                <a href="{% url 'moderator:team_edit' team.pk %}" class="btn-pill btn-primary">Редактировать</a>
+                <form method="post" action="{% url 'moderator:team_delete' team.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-pill btn-danger" onclick="return confirm('Удалить команду {{ team.name }}?')">Удалить</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Нет команд</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn-pill btn-ghost">&laquo;</a>
+    {% endif %}
+    
+    <span class="current-page">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn-pill btn-ghost">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

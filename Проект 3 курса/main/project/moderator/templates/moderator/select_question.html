@@ -1,0 +1,77 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<div class="select-question-page">
+    <div class="card">
+        <div class="flex-header">
+            <h1>Выбор вопроса для сессии: {{ session.name|default:"(без названия)" }}</h1>
+            <a href="{% url 'moderator:gamesession_detail' session.pk %}" class="btn-pill btn-ghost">← Вернуться к сессии</a>
+        </div>
+    </div>
+
+    {% if page_obj.object_list %}
+        <div class="questions-grid">
+            {% for question in page_obj.object_list %}
+            <div class="question-card">
+                <div class="question-card-header">
+                    <span class="question-id">#{{ question.id }}</span>
+                    <span class="question-time">{{ question.time_limit }} сек</span>
+                </div>
+                <div class="question-text">{{ question.text|truncatechars:50 }}</div>
+                
+                {% if question.gallery_images.all or question.image %}
+                <div class="thumb-row">
+                    {% if question.image %}
+                    <a href="{{ question.image.url }}" target="_blank" class="img-hover-wrap">
+                        <img src="{{ question.image.url }}" alt="" class="mod-thumb">
+                    </a>
+                    {% endif %}
+                    {% for gi in question.gallery_images.all|slice:":3" %}
+                    <a href="{{ gi.image.url }}" target="_blank" class="img-hover-wrap">
+                        <img src="{{ gi.image.url }}" alt="" class="mod-thumb">
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="choices-preview">
+                    <strong>Варианты ответов:</strong>
+                    <ul>
+                        {% for choice in question.choices.all %}
+                        <li class="{% if choice.is_correct %}correct-choice{% endif %}">
+                            {{ choice.text|truncatechars:40 }}
+                            {% if choice.is_correct %} ✓{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <form method="post" action="{% url 'moderator:add_question_to_session' session.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="question_id" value="{{ question.id }}">
+                    <button type="submit" class="btn-pill btn-primary">+ Добавить в сессию</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        
+
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn-pill btn-ghost">&laquo;</a>
+            {% endif %}
+            
+            <span class="current-page">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn-pill btn-ghost">&raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="card empty-state">
+            <p>Нет доступных вопросов для добавления. <a href="{% url 'moderator:question_create' %}">Создайте новый вопрос</a>.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

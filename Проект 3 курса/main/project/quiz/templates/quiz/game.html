@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Игра - Инженер будущего</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .team-info {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .team-color {
+            width: 25px;
+            height: 25px;
+            border-radius: 5px;
+        }
+        .team-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #d1d5db;
+            background: #fff;
+        }
+        .logout {
+            padding: 8px 16px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .logout:hover {
+            background: #c0392b;
+        }
+        .main-panel {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .question-panel {
+            flex: 2;
+            min-width: 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .score-panel {
+            flex: 1;
+            min-width: 250px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .moderator-controls {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            display: grid;
+            gap: 8px;
+        }
+        .moderator-stage {
+            font-size: 13px;
+            color: #475569;
+            margin: 0 0 4px 0;
+        }
+        .moderator-button {
+            width: 100%;
+        }
+        .moderator-button button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .btn-start { background: #22c55e; color: #052e16; }
+        .btn-stop { background: #f59e0b; color: #451a03; }
+        .btn-show { background: #60a5fa; color: #0c4a6e; }
+        .btn-end { background: #f87171; color: #450a0a; }
+        .moderator-title {
+            margin: 0;
+            font-size: 14px;
+            color: #334155;
+            font-weight: 700;
+        }
+
+
+        .timer {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .timer.warning {
+            color: #e67e22;
+        }
+        .timer.expired {
+            color: #e74c3c;
+        }
+        .question-text {
+            font-size: 20px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        #questionImageWrap {
+            display: none;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+            max-width: 100%;
+        }
+        @media (max-width: 520px) {
+            #questionImageWrap {
+                grid-template-columns: 1fr;
+            }
+        }
+        #questionImageWrap.has-images {
+            display: grid;
+        }
+        .quiz-img-link {
+            display: block;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+        }
+        .quiz-img-link:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 14px 32px rgba(52, 152, 219, 0.28);
+        }
+        .quiz-img-link .question-image {
+            display: block;
+            width: 100%;
+            height: min(42vw, 200px);
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 0;
+            border: none;
+            background: #f8fafc;
+        }
+        .choices {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .choice-btn {
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .choice-btn:hover:not(:disabled) {
+            background: #d5dbdb;
+            border-color: #95a5a6;
+        }
+        .choice-btn.selected {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        .choice-btn.correct {
+            background: #27ae60;
+            color: white;
+            border-color: #1e8449;
+        }
+        .choice-btn.wrong {
+            background: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+        }
+        .choice-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .wait-message {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;  /* Вертикальное выравнивание */
+            align-items: center;      /* Горизонтальное выравнивание */
+            text-align: center;
+            font-size: 18px;
+            color: #7f8c8d;
+            padding: 40px;
+            height: 600px;
+        }
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .score-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .score-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .score-table .team-color-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+        .current-team-row {
+            background: #fff3cd;
+            font-weight: bold;
+        }
+        .message-area {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="team-info">
+            {% if is_moderator %}
+                Модератор: {{ moderator_name }}
+            {% else %}
+                Команда: {{ team.name }}
+            {% endif %}
+            {% if team and team.logo %}
+                <img src="{{ team.logo.url }}" alt="Логотип команды" class="team-logo">
+            {% endif %}
+            {% if team %}
+                <span id="teamColorDot" class="team-color"></span>
+            {% endif %}
+        </div>
+        {% if is_moderator %}
+            <a href="{% url 'moderator:logout' %}" class="logout">Выйти</a>
+        {% else %}
+            <a href="{% url 'quiz:logout' %}" class="logout">Выйти</a>
+        {% endif %}
+    </div>
+    
+    <div class="main-panel">
+        <div class="question-panel" id="questionPanel">
+            <div id="waitingScreen" class="wait-message">
+                <h2>Ожидание начала игры...</h2>
+                <p>Модератор скоро запустит первый вопрос.</p>
+            </div>
+            <div id="questionScreen" class="hidden">
+                <div class="timer" id="timer">00:00</div>
+                <div id="questionImageWrap"></div>
+                <div class="question-text" id="questionText"></div>
+                <div class="choices" id="choicesContainer"></div>
+                <div id="messageDisplay" class="message-area hidden"></div>
+            </div>
+        </div>
+        <div class="score-panel">
+            <h3>Текущий счёт</h3>
+            <table class="score-table" id="scoreTable">
+                <thead>
+                    <tr>
+                        <th>Команда</th>
+                        <th>Правильно</th>
+                        <th>Время</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreBody">
+                    <!-- заполняется JS -->
+                </tbody>
+            </table>
+
+            {% if is_moderator %}
+            <div class="moderator-controls">
+                <p class="moderator-title">Управление (WebSocket)</p>
+                <p id="moderatorStageDisplay" class="moderator-stage">Стадия: …</p>
+                <div class="moderator-button" id="modWrapStartGame">
+                    <button type="button" class="btn-start" data-mod-action="moderator_start_game">▶ Запустить игру</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-start" data-mod-action="moderator_start_question">▶ Запустить следующий вопрос</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-stop" data-mod-action="moderator_end_question">⏹ Остановить приём ответов</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-show" data-mod-action="moderator_show_correct_answer">🔍 Показать правильный ответ</button>
+                </div>
+                <div class="moderator-button mod-active-only">
+                    <button type="button" class="btn-end" data-mod-action="moderator_end_game">⏹ Завершить игру</button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <script>
+        // Данные из Django
+        const teamIdRaw = "{{ team.id|default:'' }}";
+        const teamId = teamIdRaw ? Number(teamIdRaw) : null;
+        const sessionId = "{{ session.id|default:'' }}";
+        const teamColor = "{{ team.color|default:'' }}";
+        const teamColorDot = document.getElementById('teamColorDot');
+        if (teamColorDot && teamColor) {
+            teamColorDot.style.background = teamColor;
+        }
+
+        const isModerator = ("{{ is_moderator|yesno:'yes,no' }}" === "yes");
+        const initialSessionStatus = "{{ session.status }}";
+        const STAGE_LABELS = {
+            prep: 'Подготовка — ожидание запуска игры',
+            active_idle: 'Игра идёт — ожидание вопроса',
+            active_question: 'Идёт вопрос (приём ответов)',
+            active_question_time_up: 'Вопрос показан, время истекло — можно завершить вопрос',
+            finished: 'Игра завершена',
+            unknown: ''
+        };
+
+        function sendModeratorAction(actionName) {
+            if (!window.gameSocket || window.gameSocket.readyState !== WebSocket.OPEN) {
+                showMessage('Нет соединения с сервером', true);
+                return;
+            }
+            window.gameSocket.send(JSON.stringify({ action: actionName }));
+        }
+
+        if (isModerator) {
+            document.querySelectorAll('[data-mod-action]').forEach((btn) => {
+                btn.addEventListener('click', () => sendModeratorAction(btn.getAttribute('data-mod-action')));
+            });
+        }
+
+        function updateModeratorStage(state) {
+            const el = document.getElementById('moderatorStageDisplay');
+            if (!el || !state || !state.game_stage) return;
+            const label = STAGE_LABELS[state.game_stage] || state.game_stage;
+            el.textContent = 'Стадия: ' + label;
+        }
+
+        function syncModeratorButtons(state) {
+            if (!isModerator || !state) return;
+            const prep = state.session_status === 'prep';
+            const active = state.session_status === 'active';
+            const finished = state.session_status === 'finished';
+            const wrapStart = document.getElementById('modWrapStartGame');
+            if (wrapStart) wrapStart.style.display = (prep && !finished) ? 'block' : 'none';
+            document.querySelectorAll('.mod-active-only').forEach((el) => {
+                el.style.display = active ? 'block' : 'none';
+            });
+        }
+
+        if (isModerator) {
+            syncModeratorButtons({ session_status: initialSessionStatus });
+        }
+
+        // Глобальный объект для WebSocket (привязываем к window для надёжности)
+        window.gameSocket = null;
+
+        // Переменные состояния игры
+        let currentGameQuestionId = null;
+        let timeLimit = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let answerSubmitted = false;
+        let questionEnded = false;
+        let correctChoiceId = null;
+        let hasSeenQuestionThisSession = false;
+
+        function collectImageUrls(qData) {
+            if (qData.image_urls && qData.image_urls.length) return qData.image_urls;
+            if (qData.image_url) return [qData.image_url];
+            return [];
+        }
+
+        function applyQuestionImages(qData) {
+            const wrap = document.getElementById('questionImageWrap');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            wrap.classList.remove('has-images');
+            const urls = collectImageUrls(qData);
+            if (!urls.length) return;
+            urls.forEach(function (url) {
+                if (!url) return;
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.className = 'quiz-img-link';
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'question-image';
+                img.alt = 'Иллюстрация к вопросу';
+                a.appendChild(img);
+                wrap.appendChild(a);
+            });
+            wrap.classList.add('has-images');
+        }
+        function showMessage(text, isError = false) {
+            const msgDiv = document.getElementById('messageDisplay');
+            if (msgDiv) {
+                msgDiv.textContent = text;
+                msgDiv.style.background = isError ? '#f8d7da' : '#d1ecf1';
+                msgDiv.style.color = isError ? '#721c24' : '#0c5460';
+                msgDiv.classList.remove('hidden');
+            } else {
+                console.log(text);
+            }
+        }
+
+        function hideMessage() {
+            const msgDiv = document.getElementById('messageDisplay');
+            if (msgDiv) msgDiv.classList.add('hidden');
+        }
+
+        function disableChoiceButtons() {
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+
+        // Функция отправки ответа (использует window.gameSocket)
+        function submitAnswer(choiceId) {
+            if (!teamId) {
+                showMessage('Модератор не отправляет ответы.', true);
+                return;
+            }
+            if (!window.gameSocket || window.gameSocket.readyState !== WebSocket.OPEN) {
+                showMessage("Нет соединения с сервером", true);
+                return;
+            }
+            if (answerSubmitted || questionEnded) {
+                showMessage('Вы уже ответили на этот вопрос', false);
+                return;
+            }
+            if (!startTime) {
+                showMessage("Вопрос ещё не начался", true);
+                return;
+            }
+            const elapsed = (new Date() - startTime) / 1000;
+            window.gameSocket.send(JSON.stringify({
+                action: 'answer',
+                team_id: teamId,
+                game_question_id: currentGameQuestionId,
+                choice_id: choiceId,
+                elapsed: elapsed
+            }));
+            disableChoiceButtons();
+            showMessage('Ответ отправлен...', false);
+        }
+
+        // Обработчики событий от сервера
+        function handleNewQuestion(qData) {
+            hasSeenQuestionThisSession = true;
+            document.getElementById('waitingScreen').classList.add('hidden');
+            document.getElementById('questionScreen').classList.remove('hidden');
+            
+            currentGameQuestionId = qData.game_question_id;
+            document.getElementById('questionText').textContent = qData.question_text;
+            applyQuestionImages(qData);
+            timeLimit = qData.time_limit;
+            startTime = new Date(qData.start_time);
+            
+            const choicesDiv = document.getElementById('choicesContainer');
+            choicesDiv.innerHTML = '';
+            
+            qData.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.dataset.choiceId = choice.id;
+                btn.textContent = choice.text;
+                if (teamId) {
+                    btn.onclick = () => submitAnswer(choice.id);
+                } else {
+                    btn.disabled = true;
+                    btn.title = 'Модератор не отвечает на вопросы';
+                }
+                choicesDiv.appendChild(btn);
+            });
+            
+            answerSubmitted = false;
+            questionEnded = false;
+            correctChoiceId = null;
+            hideMessage();
+            startTimer();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 100);
+        }
+
+        function updateTimer() {
+            if (!startTime) return;
+            const now = new Date();
+            const elapsed = (now - startTime) / 1000;
+            const remaining = Math.max(0, timeLimit - elapsed);
+            
+            const minutes = Math.floor(remaining / 60);
+            const seconds = Math.floor(remaining % 60);
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            const timerEl = document.getElementById('timer');
+            if (remaining <= 10) {
+                timerEl.classList.add('warning');
+            } else {
+                timerEl.classList.remove('warning');
+            }
+            if (remaining <= 0) {
+                timerEl.classList.add('expired');
+                clearInterval(timerInterval);
+                if (!answerSubmitted) {
+                    showMessage('Время вышло!', false);
+                }
+            } else {
+                timerEl.classList.remove('expired');
+            }
+        }
+
+        function handleAnswerResult(data) {
+            answerSubmitted = true;
+            if (data.correct) {
+                showMessage('✅ Правильно!', false);
+            } else {
+                showMessage('❌ Неправильно', false);
+            }
+        }
+
+        function handleQuestionEnded(data) {
+            questionEnded = true;
+            disableChoiceButtons();
+            if (!answerSubmitted) {
+                showMessage('Приём ответов завершён', false);
+            }
+        }
+
+        function showCorrectAnswer(data) {
+            correctChoiceId = data.correct_choice_id;
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                if (btn.dataset.choiceId == correctChoiceId) {
+                    btn.classList.add('correct');
+                }
+            });
+            showMessage('Правильный ответ: ' + data.correct_text, false);
+        }
+
+        function handleGameEnded(data) {
+            hasSeenQuestionThisSession = false;
+            document.getElementById('waitingScreen').classList.remove('hidden');
+            document.getElementById('questionScreen').classList.add('hidden');
+            showMessage('Игра завершена. Спасибо за участие!', false);
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function updateScores(scores) {
+            const tbody = document.getElementById('scoreBody');
+            tbody.innerHTML = '';
+            scores.forEach(score => {
+                const row = document.createElement('tr');
+                if (score.team_id === teamId) {
+                    row.classList.add('current-team-row');
+                }
+                row.innerHTML = `
+                    <td>
+                        <span class="team-color-dot" style="background:${score.color};"></span>
+                        ${score.team_name}
+                    </td>
+                    <td>${score.correct}</td>
+                    <td>${score.total_time.toFixed(1)} с</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateState(state) {
+            updateScores(state.scores || []);
+            updateModeratorStage(state);
+            syncModeratorButtons(state);
+
+            if (state.session_status === 'finished') {
+                handleGameEnded({final_scores: state.scores});
+                return;
+            }
+            if (state.current_question) {
+                handleNewQuestion(state.current_question);
+                if (state.current_question.timed_out && timerInterval) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timer').classList.add('expired');
+                }
+                return;
+            }
+            if (state.session_status === 'prep') {
+                document.getElementById('waitingScreen').classList.remove('hidden');
+                document.getElementById('questionScreen').classList.add('hidden');
+                return;
+            }
+            /* active, между вопросами: не скрываем экран вопроса — иначе мелькает подсветка правильного ответа */
+            if (state.session_status === 'active') {
+                document.getElementById('waitingScreen').classList.add('hidden');
+                if (hasSeenQuestionThisSession) {
+                    document.getElementById('questionScreen').classList.remove('hidden');
+                    if (timerInterval) clearInterval(timerInterval);
+                    const tEl = document.getElementById('timer');
+                    if (tEl) tEl.classList.add('expired');
+                } else {
+                    document.getElementById('waitingScreen').classList.remove('hidden');
+                    document.getElementById('questionScreen').classList.add('hidden');
+                }
+            }
+        }
+
+        // Инициализация WebSocket
+        if (sessionId) {
+            const wsScheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const wsUrl = wsScheme + window.location.host + '/ws/game/' + sessionId + '/';
+            window.gameSocket = new WebSocket(wsUrl);
+
+            window.gameSocket.onopen = function(e) {
+                console.log("WebSocket соединение установлено");
+                window.gameSocket.send(JSON.stringify({ action: 'request_state' }));
+            };
+
+            window.gameSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log("Получено сообщение:", data);
+                switch (data.type) {
+                    case 'state':
+                        updateState(data);
+                        break;
+                    case 'new_question':
+                        handleNewQuestion(data);
+                        break;
+                    case 'scores':
+                        updateScores(data.scores);
+                        break;
+                    case 'answer_result':
+                        handleAnswerResult(data);
+                        break;
+                    case 'question_ended':
+                        handleQuestionEnded(data);
+                        break;
+                    case 'show_correct_answer':
+                        showCorrectAnswer(data);
+                        break;
+                    case 'game_ended':
+                        handleGameEnded(data);
+                        break;
+                    case 'moderator_error':
+                        showMessage(data.message || 'Действие недоступно', true);
+                        break;
+                    case 'error':
+                        if (teamId || isModerator) {
+                            showMessage(data.message || 'Ошибка', true);
+                        } else {
+                            alert('Ошибка: ' + data.message);
+                        }
+                        break;
+                    default:
+                        console.log('Неизвестный тип сообщения:', data.type);
+                }
+            };
+
+            window.gameSocket.onclose = function(e) {
+                console.log("WebSocket соединение закрыто");
+                showMessage("Соединение с сервером потеряно. Перезагрузите страницу.", true);
+            };
+
+            window.gameSocket.onerror = function(e) {
+                console.error("WebSocket ошибка:", e);
+                showMessage("Ошибка соединения с сервером", true);
+            };
+        } else {
+            console.error("Session ID не определён");
+            showMessage("Нет активной игровой сессии", true);
+        }
+    </script>
+</body>
+</html>

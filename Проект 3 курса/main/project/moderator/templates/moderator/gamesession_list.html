@@ -1,0 +1,88 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>Игровые сессии</h1>
+<a href="{% url 'moderator:gamesession_create' %}" class="btn-pill btn-primary">+ Новая сессия</a>
+
+{% if sessions %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Статус</th>
+            <th>Дата создания</th>
+            <th>Начало игры</th>
+            <th>Вопросов</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for session in sessions %}
+        <tr>
+            <td>{{ session.id }}</td>
+            <td>{{ session.name|default:"(без названия)" }}</td>
+            <td>
+                {% if session.status == 'prep' %}
+                    <span class="status status-prep">Подготовка</span>
+                {% elif session.status == 'active' %}
+                    <span class="status status-active">Активна</span>
+                {% elif session.status == 'finished' %}
+                    <span class="status status-finished">Завершена</span>
+                {% endif %}
+            </td>
+            <td>{{ session.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ session.start_time|date:"d.m.Y H:i"|default:"—" }}</td>
+            <td>{{ session.game_questions.count }}</td>
+            <td class="action-cell">
+                <a href="{% url 'moderator:gamesession_detail' session.pk %}" class="btn-pill btn-primary">Подробнее</a>
+                {% if session.status == 'prep' and session.game_questions.exists %}
+                    <form method="post" action="{% url 'moderator:start_game_session' session.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-pill btn-success" onclick="return confirm('Запустить игру?')">Старт</button>
+                    </form>
+                {% endif %}
+                <form method="post" action="{% url 'moderator:gamesession_delete' session.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-pill btn-danger" onclick="return confirm('Удалить сессию {% if session.name %}{{ session.name }}{% else %}#{{ session.id }}{% endif %}?')">Удалить</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">Нет сессий</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1" class="btn-pill btn-ghost">&laquo; первая</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn-pill btn-ghost">предыдущая</a>
+    {% endif %}
+    <span class="current-page">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn-pill btn-ghost">следующая</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn-pill btn-ghost">последняя &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="card empty-state">
+    Пока нет ни одной игровой сессии.
+</div>
+{% endif %}
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn-pill btn-ghost">&laquo;</a>
+    {% endif %}
+    
+    <span class="current-page">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn-pill btn-ghost">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

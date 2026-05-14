@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Панель модератора</title>
+    <link rel="stylesheet" href="{% static 'moderator/moderator_theme.css' %}">
+    <style>
+        .messages .success { background: rgba(34, 197, 94, 0.25); color: #bbf7d0; border: 1px solid rgba(74, 222, 128, 0.5); }
+        .messages .error { background: rgba(248, 113, 113, 0.2); color: #fecaca; border: 1px solid rgba(251, 113, 133, 0.55); }
+        .messages .warning { background: rgba(250, 204, 21, 0.15); color: #fef9c3; border: 1px solid rgba(253, 224, 71, 0.45); }
+        .messages .info { background: rgba(56, 189, 248, 0.15); color: #e0f2fe; border: 1px solid rgba(125, 211, 252, 0.45); }
+        .messages li { list-style: none; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+        .messages { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <span class="user-info">Добро пожаловать, {{ user.moderator_profile.full_name }}!</span>
+            <a href="{% url 'moderator:logout' %}" class="logout">Выйти</a>
+        </div>
+
+        <div class="nav">
+            <a href="{% url 'moderator:panel' %}">Главная</a>
+            <a href="{% url 'moderator:question_list' %}">Вопросы</a>
+            <a href="{% url 'moderator:team_list' %}">Команды</a>
+            <a href="{% url 'moderator:gamesession_list' %}">Игровые сессии</a>
+        </div>
+
+        {% if messages %}
+        <div class="messages-wrap">
+            <p class="messages-title">Уведомления</p>
+            <ul class="messages">
+                {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+                    <span class="message-badge">
+                        {% if 'success' in message.tags %}OK{% elif 'error' in message.tags %}!{% elif 'warning' in message.tags %}⚠{% else %}i{% endif %}
+                    </span>
+                    <span class="message-text">{{ message }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

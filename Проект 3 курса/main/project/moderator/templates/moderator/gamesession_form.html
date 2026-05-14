@@ -1,0 +1,14 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>{% if object %}Редактировать сессию{% else %}Создать новую сессию{% endif %}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="action-cell"> 
+        <button class="btn-pill btn-success" type="submit">Сохранить</button>
+        <a class="btn-pill btn-warning" href="{% url 'moderator:team_list' %}">Отмена</a>
+    </div>
+</form>
+{% endblock %}

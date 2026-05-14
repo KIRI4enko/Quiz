@@ -1,0 +1,68 @@
+{% extends "moderator/base.html" %}
+
+{% block content %}
+<h1>Список вопросов</h1>
+<a href="{% url 'moderator:question_create' %}" class="btn-pill btn-primary">+ Добавить вопрос</a>
+
+<table class="data-table question-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Изображение</th>
+            <th>Текст</th>
+            <th>Время</th>
+            <th>Варианты</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for q in questions %}
+        <tr>
+            <td>{{ q.id }}</td>
+            <td>
+                <div class="thumb-row">
+                {% if q.image %}
+                <a href="{{ q.image.url }}" target="_blank" class="img-hover-wrap"><img src="{{ q.image.url }}" alt="" class="mod-thumb"></a>
+                {% endif %}
+                {% for gi in q.gallery_images.all %}
+                <a href="{{ gi.image.url }}" target="_blank" class="img-hover-wrap"><img src="{{ gi.image.url }}" alt="" class="mod-thumb"></a>
+                {% endfor %}
+                </div>
+                {% if not q.image and not q.gallery_images.exists %}
+                <span class="muted">—</span>
+                {% endif %}
+            </td>
+            <td>{{ q.text|truncatechars:50 }}</td>
+            <td>{{ q.time_limit }} сек</td>
+            <td>
+                {% for choice in q.choices.all %}
+                    {{ choice.text }}{% if choice.is_correct %} (✓){% endif %}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td class="action-cell">
+                <a href="{% url 'moderator:question_edit' q.pk %}" class="btn-pill btn-primary">Редактировать</a>
+                <form method="post" action="{% url 'moderator:question_delete' q.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-pill btn-danger" onclick="return confirm('Удалить вопрос #{{ q.id }}?')">Удалить</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">Нет вопросов</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn-pill btn-ghost">&laquo;</a>
+    {% endif %}
+    
+    <span class="current-page">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn-pill btn-ghost">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
